@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+  db_node_1:
+    hostname: db_node_1
+    image: cassandra:latest
+    expose:
+      - 9091
+    ports:
+      - "9092:9091"
+  db_node_2:
+    hostname: db_node_2
+    image: cassandra:latest
+    environment:
+      - CASSANDRA_SEEDS=db_node_1
+    links:
+      - db_node_1:cassandra
+    expose:
+      - 9091
+    ports:
+      - "9093:9091"
+    depends_on:
+      - db_node_1
+  server_node_1:
+    container_name: server_node_1
+    hostname: server_node_1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - 8081
+    ports:
+      - "8082:8081"
+  server_node_2:
+    container_name: server_node_2
+    hostname: server_node_2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - 8081
+    ports:
+      - "8083:8081"
+  haproxy:
+    hostname: haproxy_server
+    image: haproxy:latest
+    volumes:
+      - ./haproxy_server:/usr/local/etc/haproxy
+    expose:
+      - 3000
+      - 1936
+    ports:
+      - "8081:8081"
+      - "1936:1936"
+    links:
+      - server_node_1:server_node_1
+      - server_node_2:server_node_2
+    depends_on:
+      - server_node_1
+      - server_node_2
+
